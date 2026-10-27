@@ -1,100 +1,133 @@
-// import the  express for the   create the api  enpoints 
-
 const express = require("express");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const User = require("../models/user");
 
-const jwt = require("jsonwebtoken"); // for the   authentication ---/
+const router = express.Router();
 
-const bcryptjs = require("bcryptjs") // for the password  convert into the hash based  password ---?
-
-const user =  require("../models/user");  // import eh  models    in the database 
-const { Route } = require("react-router-dom");
-const user = require("../models/user");
-const user = require("../models/user");
-
-const Router = express.Router();
-
-
-// for the sign up 
-Route.post("/signup", async(req, res)=>{
+router.post("/signup", async (req, res) => {
     try {
-        const  {name, email,password} =req.body;
+        const { name, email, password } = req.body || {};
+        const normalizedName = typeof name === "string" ? name.trim() : "";
+        const normalizedEmail =
+            typeof email === "string" ? email.trim().toLowerCase() : "";
 
-        if (!name || !email || !password){
-            return  res.status(400).json({message : " Name, Email, and password are required!"});
+        if (!normalizedName || !normalizedEmail || typeof password !== "string") {
+            return res.status(400).json({
+                message: "Name, email, and password are required."
+            });
         }
 
-        // check user exist or not
-        const exists_user = await  user.findOne({
-            email: email.toLowerCase(),
-        });
-
-        if (exists_user ){
-            return  res.status(409).json({message : "Email already register ! "});
-
+        if (normalizedName.length > 100) {
+            return res.status(400).json({
+                message: "Name must be 100 characters or fewer."
+            });
         }
 
-        // create the hash password -->
-        const hash_password =  await bcrypt.hash(password, 10);
+        if (
+            normalizedEmail.length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+        ) {
+            return res.status(400).json({
+                message: "Enter a valid email address."
+            });
+        }
 
-        const user = await user.create({
-            name,
-            email: email.toLowerCase(),
-            password: hash_password,
+        if (password.length < 8 || password.length > 128) {
+            return res.status(400).json({
+                message: "Password must be between 8 and 128 characters long."
+            });
+        }
+
+        const existingUser = await User.findOne({ email: normalizedEmail });
+        if (existingUser) {
+            return res.status(409).json({
+                message: "An account with this email already exists."
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const createdUser = await User.create({
+            name: normalizedName,
+            email: normalizedEmail,
+            password: hashedPassword
         });
-        res.status(201).json({message : "Account is created sucessfully ! ",
+
+        return res.status(201).json({
+            message: "Account created successfully.",
             user: {
-                id:user._id,
-                name:user.name,
-                email:user.email,
+                id: createdUser._id,
+                name: createdUser.name,
+                email: createdUser.email
             }
         });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "An account with this email already exists."
+            });
+        }
 
-    }catch (error){
-        console.error("sigup  error:",error);
-        res.status(500).json({message :"Signup  failed !"});
+        console.error("Signup error:", error);
+        return res.status(500).json({ message: "Signup failed." });
     }
 });
 
+router.post("/login", async (req, res) => {
+    try {
+        const { email, password } = req.body || {};
+        const normalizedEmail =
+            typeof email === "string" ? email.trim().toLowerCase() : "";
 
-Router.post("login" , async(req, res) =>{
-    try{
-        const {email , password} = req.body;
-
-        // check the data fields =-->
-        if (!email || !password){
-            return res.status(400).json({message : "Email and  Password are required !"});
+        if (!normalizedEmail || typeof password !== "string" || !password) {
+            return res.status(400).json({
+                message: "Email and password are required."
+            });
         }
 
-        // find the user -->
-        const user = await user.findOne({
-            email: email.toLowerCase(),
+        if (
+            normalizedEmail.length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+        ) {
+            return res.status(400).json({
+                message: "Enter a valid email address."
+            });
+        }
+
+        if (!process.env.JWT_SECRETkey) {
+            console.error("Login failed: JWT_SECRETkey is not configured.");
+            return res.status(500).json({
+                message: "Authentication is not configured."
+            });
+        }
+
+        const user = await User.findOne({ email: normalizedEmail })
+            .select("+password");
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({
+                message: "Invalid email or password."
+            });
+        }
+
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRETkey,
+            { expiresIn: "1d" }
+        );
+
+        return res.json({
+            message: "Login successful.",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
         });
-        if (!user) {
-            return res.status(401).json({message : " Invalid Email and Password !"});
-        }
-
-        const  token =  jwt.sign({
-            userId:user._id,
-            email:user.email,
-        },
-        process.env.JWT_SECRETkey,
-        {expiresIn :" 1d",}
-    );
-
-    res.json({ message : "Login  sucessfully !", 
-        token,  
-        user:{
-            id:user._id,
-            name:user.name,
-            email:user.email,
-        },
-    });
-
-    } catch (error){
-        console.error("Login Error.. !",error);
-
-        res.status(500).json({message : "Sever Error !"});
+    } catch (error) {
+        console.error("Login error:", error);
+        return res.status(500).json({ message: "Login failed." });
     }
 });
 
-module.exports  = Router;
+module.exports = router;

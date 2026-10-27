@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.js",
+    "dev:backend": "npm --prefix main_Server run dev",
+    "dev:frontend": "vite",
+    "test": "node --test main_Server/test/booking_validation.test.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -12,24 +15,40 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "dotenv": "^18.0.7",
+    "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.1",
     "qrcode.react": "^4.2.0",
+    "razorpay": "^2.9.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+    "react-router-dom": "^7.18.3",
+    "stripe": "^23.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "concurrently": "^10.0.6",
     "eslint": "^10.9.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",
     "globals": "^17.11.0",
     "vite": "^8.2.2"
-  }
+  },
+  "description": "Ticketly is a React/Vite ticket-booking demo with an Express and MongoDB\r authentication backend.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/roshansharma73737-tech/MERN_STACK_PROJECT_09.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/roshansharma73737-tech/MERN_STACK_PROJECT_09/issues"
+  },
+  "homepage": "https://github.com/roshansharma73737-tech/MERN_STACK_PROJECT_09#readme"
 }

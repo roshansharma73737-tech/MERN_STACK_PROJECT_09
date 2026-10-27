@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { apiRequest } from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(location.state?.message || "");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
@@ -23,52 +25,22 @@ function Login() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:5000/api/auth/login",
-        {
-          method: "POST",
+      const data = await apiRequest("/Authentication/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
 
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMessage(data.message || "Login failed.");
-        return;
+      if (!data?.token) {
+        throw new Error("The server did not return an authentication token.");
       }
 
-      // Store authentication information
-      localStorage.setItem("token", data.token);
-
-      if (data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
-      }
+      localStorage.setItem("ticketly_token", data.token);
+      if (data.user) localStorage.setItem("ticketly_user", JSON.stringify(data.user));
 
       setMessage("Login successful!");
-
-      // Go to home page
-      setTimeout(() => {
-        navigate("/");
-      }, 700);
-
+      navigate(location.state?.from || "/", { replace: true });
     } catch (error) {
-      console.error("Login error:", error);
-
-      setMessage(
-        "Unable to connect to server. Please start the backend."
-      );
+      setMessage(error.message);
     } finally {
       setLoading(false);
     }
@@ -157,13 +129,9 @@ function Login() {
 
             Don't have an account?{" "}
 
-            <button
-              type="button"
-              className="signup-link"
-              onClick={() => navigate("/signup")}
-            >
+            <Link to="/signup" className="signup-link">
               Sign Up
-            </button>
+            </Link>
 
           </p>
 

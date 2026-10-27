@@ -8,6 +8,11 @@ import Movies from "./pages/movies";
 import Login from "./pages/login";
 import Booking from "./pages/booking";
 import Ticket from "./pages/ticket";
+import Signup from "./pages/signup";
+import Seats from "./pages/seats";
+import Payment from "./pages/payments";
+import { PaymentCancelled, PaymentSuccess } from "./pages/payment-result";
+import Footer from "./components/foolter";
 
 function App() {
   return (
@@ -25,12 +30,27 @@ function App() {
 
         <Route path="/booking" element={<Booking />} />
 
+        <Route path="/bookings" element={<Booking />} />
+
+        <Route path="/seats" element={<Seats />} />
+
+        <Route path="/payment" element={<Payment />} />
+
+        <Route path="/payment/success" element={<PaymentSuccess />} />
+
+        <Route path="/payment/cancelled" element={<PaymentCancelled />} />
+
         <Route path="/login" element={<Login />} />
 
-        <Route path="/Ticket/generation" element ={<Ticket />} />
+        <Route path="/signup" element={<Signup />} />
+
+        <Route path="/ticket/:ticketId" element={<Ticket />} />
+
+        <Route path="/ticket/generation" element={<Ticket />} />
 
       </Routes>
 
+      <Footer />
     </div>
   );
 }

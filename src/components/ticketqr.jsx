@@ -1,18 +1,17 @@
+import { useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
 function Ticket_QR_function({ ticket }) {
-  if (!ticket) {
+  const qrRef = useRef(null);
+
+  if (!ticket?.ticketId) {
     return null;
   }
 
-  const qrData = JSON.stringify({
-    ticketId: ticket.ticketId ?? ticket.ticket_id,
-    paymentId: ticket.paymentId ?? ticket.payment_id,
-    type: ticket.type,
-    date: ticket.date,
-    time: ticket.time,
-    seats: ticket.seats ?? [],
-  });
+  const qrData = new URL(
+    `/ticket/${encodeURIComponent(ticket.ticketId)}`,
+    window.location.origin
+  ).toString();
 
   return (
     <div className="ticket-qr">
@@ -20,6 +19,7 @@ function Ticket_QR_function({ ticket }) {
 
       <div className="qr-box">
         <QRCodeCanvas
+          ref={qrRef}
           value={qrData}
           size={220}
           bgColor="#ffffff"
@@ -28,9 +28,22 @@ function Ticket_QR_function({ ticket }) {
         />
       </div>
 
-      <p className="qr-ticket-id">
-        Ticket ID: {ticket.ticketId ?? ticket.ticket_id}
-      </p>
+      <p className="qr-ticket-id">Ticket ID: {ticket.ticketId}</p>
+      <button
+        className="button"
+        type="button"
+        onClick={() => {
+          const canvas = qrRef.current;
+          if (!canvas) return;
+
+          const downloadLink = document.createElement("a");
+          downloadLink.href = canvas.toDataURL("image/png");
+          downloadLink.download = `ticket-${ticket.ticketId}-qr.png`;
+          downloadLink.click();
+        }}
+      >
+        Download QR code
+      </button>
     </div>
   );
 }

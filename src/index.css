@@ -4,10 +4,25 @@
   box-sizing: border-box;
 }
 
+:root {
+  --accent: #b8ff4d;
+  --text: #e8e6e6;
+  --muted: #9297a3;
+  --border: #292d38;
+  --surface: #11141c;
+  --surface-light: #20242e;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   font-family: Arial, sans-serif;
-  background: #e020a7;
-  color: #97ece2;
+  background: #08090d;
+  color: var(--text);
 }
 
 button {

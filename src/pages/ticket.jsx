@@ -1,106 +1,88 @@
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
-import Ticket_QR_function from "../components/ticketqr";
+import { apiRequest } from "../services/api";
+import TicketCard from "../components/tickercard";
 
 function Ticket(){
-    const location  = useLocation();
-    const navigate  = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { ticketId: routeTicketId } = useParams();
+    const ticketId = routeTicketId || location.state?.ticket?.ticketId;
+    const [verification, setVerification] = useState(null);
 
+    useEffect(() => {
+        let active = true;
 
-    const ticket  = location.state?.ticket;
+        if (!ticketId) {
+            return;
+        }
 
-    if  (!ticket){
+        apiRequest(`/payment/verify/${encodeURIComponent(ticketId)}`)
+            .then((data) => {
+                if (!data?.ticket?.ticketId || data.ticket.status !== "confirmed") {
+                    throw new Error("The server could not confirm this ticket.");
+                }
+                if (active) {
+                    setVerification({
+                        ticketId,
+                        ticket: data.ticket,
+                        error: ""
+                    });
+                }
+            })
+            .catch((requestError) => {
+                if (active) {
+                    setVerification({
+                        ticketId,
+                        ticket: null,
+                        error: requestError.message
+                    });
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [ticketId]);
+
+    if (!ticketId) {
         return (
-            <div className="ticket-page">
-              <div className="ticket-card">
-                <h1>No Ticket Found</h1>
+            <main className="ticket-page">
+                <div className="ticket-card">
+                    <h1>Ticket not verified</h1>
+                    <p>No ticket ID was provided.</p>
+                    <Link to="/movies" className="button">Browse movies</Link>
+                </div>
+            </main>
+        );
+    }
 
-                <p>
-                   Please complete a payment first.
-                </p>
+    if (!verification || verification.ticketId !== ticketId) {
+        return (
+            <main className="ticket-page">
+                <p>Verifying ticket...</p>
+            </main>
+        );
+    }
 
-                <button
-                   onClick={() => navigate("/movies")}
-                >
-                  Browse Movies
-                </button>
-              </div>
-            </div>
+    if (verification.error || !verification.ticket) {
+        return (
+            <main className="ticket-page">
+                <div className="ticket-card">
+                    <h1>Ticket not verified</h1>
+                    <p>{verification.error || "This ticket could not be verified."}</p>
+                    <Link to="/movies" className="button">Browse movies</Link>
+                </div>
+            </main>
         );
     }
 
     return (
-    <div className="ticket-page">
-
-      <div className="ticket-card">
-
-        <div className="ticket-header">
-          <h1>TICKETLY</h1>
-
-          <span className="success-badge">
-            PAYMENT SUCCESS
-          </span>
-        </div>
-
-        <div className="ticket-content">
-
-          <div className="ticket-details">
-
-            <h2>{ticket.title}</h2>
-
-            <p>
-              <strong>Type:</strong>{" "}
-              {ticket.type}
-            </p>
-
-            <p>
-              <strong>Date:</strong>{" "}
-              {ticket.date}
-            </p>
-
-            <p>
-              <strong>Time:</strong>{" "}
-              {ticket.time}
-            </p>
-
-            <p>
-              <strong>Seats:</strong>{" "}
-              {ticket.seats.join(", ")}
-            </p>
-
-            <p>
-              <strong>Amount:</strong>{" "}
-              ₹{ticket.amount}
-            </p>
-
-            <p>
-              <strong>Payment ID:</strong>{" "}
-              {ticket.paymentId}
-            </p>
-
-            <p>
-              <strong>Ticket ID:</strong>{" "}
-              {ticket.ticketId}
-            </p>
-
-          </div>
-
-          <Ticket_QR_function ticket={ticket} />
-
-        </div>
-
-        <button
-          className="ticket-home-button"
-          onClick={() => navigate("/")}
-        >
-          Back to Home
-        </button>
-
-      </div>
-
-    </div>
-  );
+        <main className="ticket-page">
+            <TicketCard ticket={verification.ticket} onHome={() => navigate("/")} />
+        </main>
+    );
 }
 
 

@@ -1,33 +1,45 @@
-// crea the middleware like  verification  function  this ( reuasable ) function in any  other file
+const jwt = require("jsonwebtoken");
 
-const  jwt =  require("jsonwebtoken");  // import the jwt--->
-
-const authmiddleware = (req,res, next ) =>{
+const authmiddleware = (req, res, next) => {
     try {
-        const authen_header =  req.headers.autorization;
+        const authHeader = req.headers.authorization;
 
-        if(!authen_header){
+        if (!authHeader) {
             return res.status(401).json({
-                message :"Authentication required"
+                message: "Authentication required."
             });
         }
-        const parts =  authen_header.split(' ');
-        if( parts.length !==2 || parts[0]  !== "bearer"){
-            return res.status(401).json({message : " Invalid token !"});
+
+        const [scheme, token, ...extraParts] = authHeader.trim().split(/\s+/);
+        if (
+            scheme?.toLowerCase() !== "bearer" ||
+            !token ||
+            extraParts.length > 0
+        ) {
+            return res.status(401).json({ message: "Invalid token." });
         }
 
-        const token = parts[1];
+        if (!process.env.JWT_SECRETkey) {
+            console.error("Authentication failed: JWT_SECRETkey is not configured.");
+            return res.status(500).json({
+                message: "Authentication is not configured."
+            });
+        }
 
-        // the  verify the token by the  jwt verification function ---->
+        const decoded = jwt.verify(token, process.env.JWT_SECRETkey);
+        if (typeof decoded !== "object" || !decoded.userId) {
+            return res.status(401).json({ message: "Invalid token." });
+        }
 
-        const  decoded = jwt.verify(token, process.env.JWT_SECRETkey);
-
-        req.user =decoded;
-
+        req.user = decoded;
         next();
     } catch (error) {
-        console.error("Authentication  error:", error);
-        return res.status(401).json({message : " Invalid  or Expire Token !"});
+        if (error.name !== "JsonWebTokenError" && error.name !== "TokenExpiredError") {
+            console.error("Authentication error:", error);
+        }
+        return res.status(401).json({
+            message: "Invalid or expired token."
+        });
     }
 };
 
